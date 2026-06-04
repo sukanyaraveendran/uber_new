@@ -407,49 +407,121 @@ function updateSummary() {
  });
 }
 
-function exportPDF() {
+function pdfScriptUrl() {
+ return new URL("./libs/html2pdf.bundle.min.js", window.location.href).href;
+}
+
+function getHtml2PdfFn() {
+ if (typeof window.html2pdf === "function") return window.html2pdf;
+ return null;
+}
+
+let pdfLibLoadPromise = null;
+
+function ensurePdfLibrary() {
+ let fn = getHtml2PdfFn();
+ if (fn) return Promise.resolve(fn);
+
+ if (pdfLibLoadPromise) return pdfLibLoadPromise;
+
+ pdfLibLoadPromise = new Promise((resolve, reject) => {
+  function finish() {
+   let loaded = getHtml2PdfFn();
+   if (loaded) resolve(loaded);
+   else reject(new Error("html2pdf not defined"));
+  }
+
+  let script = document.getElementById("html2pdfScript");
+  if (script && !getHtml2PdfFn()) script.remove();
+
+  script = document.createElement("script");
+  script.id = "html2pdfScript";
+  script.src = pdfScriptUrl();
+  script.onload = finish;
+  script.onerror = () => reject(new Error("script error"));
+  document.head.appendChild(script);
+ });
+
+ return pdfLibLoadPromise.catch(err => {
+  pdfLibLoadPromise = null;
+  throw err;
+ });
+}
+
+function buildPdfReportHtml(today) {
+ return `
+ <h2 class="pdf-report-title">Uber Earnings Report</h2>
+ <p class="pdf-report-meta">Generated: ${today}</p>
+ ${buildReportCardsHtml(false)}
+ `;
+}
+
+function exportPDFViaPrint(today, reportHtml) {
+ let styleHref = new URL("./style.css", window.location.href).href;
+ let printWin = window.open("", "_blank");
+
+ if (!printWin) {
+  alert("Allow pop-ups to save PDF, or try again.");
+  return;
+ }
+
+ printWin.document.open();
+ printWin.document.write(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>Uber Report ${today}</title>
+<link rel="stylesheet" href="${styleHref}">
+<style>
+body{background:#f4f6f9;padding:15px;}
+.pdf-report{position:static;width:auto;left:auto;}
+.mobile-entries,.mobile-summary{display:block;}
+.entry-card-actions{display:none!important;}
+</style>
+</head><body class="pdf-print-body">
+<div class="pdf-report">${reportHtml}</div>
+</body></html>`);
+ printWin.document.close();
+
+ printWin.onload = () => {
+  printWin.focus();
+  printWin.print();
+ };
+}
+
+async function exportPDF() {
  if (!entries.length) {
   alert("No entries to export.");
   return;
  }
 
- if (typeof html2pdf !== "function") {
-  alert("PDF export is not available. Reload the app when online once.");
-  return;
- }
-
  let today = new Date().toISOString().split("T")[0];
  let reportEl = document.getElementById("pdfReport");
-
- reportEl.innerHTML = `
- <h2 class="pdf-report-title">Uber Earnings Report</h2>
- <p class="pdf-report-meta">Generated: ${today}</p>
- ${buildReportCardsHtml(false)}
- `;
+ let reportHtml = buildPdfReportHtml(today);
+ reportEl.innerHTML = reportHtml;
 
  let pdfBtn = document.querySelector(".btn-pdf");
  if (pdfBtn) pdfBtn.disabled = true;
 
- html2pdf()
-  .set({
-   margin: [8, 8, 8, 8],
-   filename: `Uber_Report_${today}.pdf`,
-   image: { type: "jpeg", quality: 0.95 },
-   html2canvas: { scale: 2, logging: false },
-   jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-   pagebreak: { mode: ["css", "legacy"], avoid: ".entry-card" }
-  })
-  .from(reportEl)
-  .save()
-  .then(() => {
-   reportEl.innerHTML = "";
-  })
-  .catch(() => {
-   alert("Could not create PDF. Try again.");
-  })
-  .finally(() => {
-   if (pdfBtn) pdfBtn.disabled = false;
-  });
+ try {
+  let html2pdfFn = await ensurePdfLibrary();
+
+  await html2pdfFn()
+   .set({
+    margin: [8, 8, 8, 8],
+    filename: `Uber_Report_${today}.pdf`,
+    image: { type: "jpeg", quality: 0.95 },
+    html2canvas: { scale: 2, logging: false },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["css", "legacy"], avoid: ".entry-card" }
+   })
+   .from(reportEl)
+   .save();
+ } catch {
+  exportPDFViaPrint(today, reportHtml);
+ } finally {
+  reportEl.innerHTML = "";
+  if (pdfBtn) pdfBtn.disabled = false;
+ }
 }
 
 function exportCSV() {

@@ -1,7 +1,7 @@
 {
     "name": "Uber Earnings Tracker",
     "short_name": "Uber Tracker",
-    "start_url": "/",
+    "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#28a745",
