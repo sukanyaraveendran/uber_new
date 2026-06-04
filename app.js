@@ -224,6 +224,80 @@ function metricRow(label, value, isTotal) {
  `;
 }
 
+function entryCardHtml({ entry, index }, lastByDate, dailyTotals, includeActions) {
+ let rowEarnings = entry.earnings + entry.otherEarnings;
+ let isLastOfDay = index === lastByDate[entry.date];
+ let dayProfit = dailyTotals[entry.date]?.profit ?? 0;
+ let profitBlock = isLastOfDay
+  ? `<div class="entry-card-profit ${profitClass(dayProfit)}">
+     <span>Daily profit</span>
+     <strong>${formatMoney(dayProfit)}</strong>
+    </div>`
+  : "";
+ let actionsBlock = includeActions
+  ? `<div class="entry-card-actions">${actionButtonsHtml(index)}</div>`
+  : "";
+
+ return `
+ <article class="entry-card">
+  <header class="entry-card-date">${entry.date}</header>
+  <section class="entry-card-section earnings-section">
+   <h4>Earnings</h4>
+   ${metricRow("Uber", entry.earnings, false)}
+   ${metricRow("Other", entry.otherEarnings, false)}
+   ${metricRow("Total", rowEarnings, true)}
+  </section>
+  <section class="entry-card-section expenses-section">
+   <h4>Expenses</h4>
+   ${metricRow("Fuel", entry.fuel, false)}
+   ${metricRow("Daily", entry.dailyExpense, false)}
+   ${metricRow("Other", entry.otherExpense, false)}
+   ${metricRow("Total", entry.expenses, true)}
+  </section>
+  ${profitBlock}
+  ${actionsBlock}
+ </article>
+ `;
+}
+
+function summaryCardHtml(totals) {
+ return `
+ <article class="summary-card">
+  <h3 class="summary-card-title">Total</h3>
+  <section class="entry-card-section earnings-section">
+   <h4>Earnings</h4>
+   ${metricRow("Uber", totals.uber, false)}
+   ${metricRow("Other", totals.otherEarnings, false)}
+   ${metricRow("Total", totals.earnings, true)}
+  </section>
+  <section class="entry-card-section expenses-section">
+   <h4>Expenses</h4>
+   ${metricRow("Fuel", totals.fuel, false)}
+   ${metricRow("Daily", totals.daily, false)}
+   ${metricRow("Other", totals.otherExpense, false)}
+   ${metricRow("Total", totals.expenses, true)}
+  </section>
+  <div class="entry-card-profit summary-total-profit ${profitClass(totals.profit)}">
+   <span>Total profit</span>
+   <strong>${formatMoney(totals.profit)}</strong>
+  </div>
+ </article>
+ `;
+}
+
+function buildReportCardsHtml(includeActions) {
+ let lastByDate = getLastEntryIndexByDate();
+ let dailyTotals = getDailyTotals();
+ let sorted = getSortedEntries();
+ let totals = getTableTotals();
+
+ let cards = sorted
+  .map(item => entryCardHtml(item, lastByDate, dailyTotals, includeActions))
+  .join("");
+
+ return cards + summaryCardHtml(totals);
+}
+
 function renderDesktopTable(sorted, lastByDate, dailyTotals) {
  let tbody = document.getElementById("tableBody");
  tbody.innerHTML = "";
@@ -265,62 +339,10 @@ function renderMobileCards(sorted, lastByDate, dailyTotals, totals) {
  }
 
  container.innerHTML = sorted
-  .map(({ entry, index }) => {
-   let rowEarnings = entry.earnings + entry.otherEarnings;
-   let isLastOfDay = index === lastByDate[entry.date];
-   let dayProfit = dailyTotals[entry.date]?.profit ?? 0;
-   let profitBlock = isLastOfDay
-    ? `<div class="entry-card-profit ${profitClass(dayProfit)}">
-     <span>Daily profit</span>
-     <strong>${formatMoney(dayProfit)}</strong>
-    </div>`
-    : "";
-
-   return `
- <article class="entry-card">
-  <header class="entry-card-date">${entry.date}</header>
-  <section class="entry-card-section earnings-section">
-   <h4>Earnings</h4>
-   ${metricRow("Uber", entry.earnings, false)}
-   ${metricRow("Other", entry.otherEarnings, false)}
-   ${metricRow("Total", rowEarnings, true)}
-  </section>
-  <section class="entry-card-section expenses-section">
-   <h4>Expenses</h4>
-   ${metricRow("Fuel", entry.fuel, false)}
-   ${metricRow("Daily", entry.dailyExpense, false)}
-   ${metricRow("Other", entry.otherExpense, false)}
-   ${metricRow("Total", entry.expenses, true)}
-  </section>
-  ${profitBlock}
-  <div class="entry-card-actions">${actionButtonsHtml(index)}</div>
- </article>
- `;
-  })
+  .map(item => entryCardHtml(item, lastByDate, dailyTotals, true))
   .join("");
 
- summary.innerHTML = `
- <article class="summary-card">
-  <h3 class="summary-card-title">Total</h3>
-  <section class="entry-card-section earnings-section">
-   <h4>Earnings</h4>
-   ${metricRow("Uber", totals.uber, false)}
-   ${metricRow("Other", totals.otherEarnings, false)}
-   ${metricRow("Total", totals.earnings, true)}
-  </section>
-  <section class="entry-card-section expenses-section">
-   <h4>Expenses</h4>
-   ${metricRow("Fuel", totals.fuel, false)}
-   ${metricRow("Daily", totals.daily, false)}
-   ${metricRow("Other", totals.otherExpense, false)}
-   ${metricRow("Total", totals.expenses, true)}
-  </section>
-  <div class="entry-card-profit summary-total-profit ${profitClass(totals.profit)}">
-   <span>Total profit</span>
-   <strong>${formatMoney(totals.profit)}</strong>
-  </div>
- </article>
- `;
+ summary.innerHTML = summaryCardHtml(totals);
 }
 
 function updateDesktopTotals(totals) {
@@ -383,6 +405,51 @@ function updateSummary() {
   el.innerText = "₹" + value;
   el.className = profitClass(value);
  });
+}
+
+function exportPDF() {
+ if (!entries.length) {
+  alert("No entries to export.");
+  return;
+ }
+
+ if (typeof html2pdf !== "function") {
+  alert("PDF export is not available. Reload the app when online once.");
+  return;
+ }
+
+ let today = new Date().toISOString().split("T")[0];
+ let reportEl = document.getElementById("pdfReport");
+
+ reportEl.innerHTML = `
+ <h2 class="pdf-report-title">Uber Earnings Report</h2>
+ <p class="pdf-report-meta">Generated: ${today}</p>
+ ${buildReportCardsHtml(false)}
+ `;
+
+ let pdfBtn = document.querySelector(".btn-pdf");
+ if (pdfBtn) pdfBtn.disabled = true;
+
+ html2pdf()
+  .set({
+   margin: [8, 8, 8, 8],
+   filename: `Uber_Report_${today}.pdf`,
+   image: { type: "jpeg", quality: 0.95 },
+   html2canvas: { scale: 2, logging: false },
+   jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+   pagebreak: { mode: ["css", "legacy"], avoid: ".entry-card" }
+  })
+  .from(reportEl)
+  .save()
+  .then(() => {
+   reportEl.innerHTML = "";
+  })
+  .catch(() => {
+   alert("Could not create PDF. Try again.");
+  })
+  .finally(() => {
+   if (pdfBtn) pdfBtn.disabled = false;
+  });
 }
 
 function exportCSV() {

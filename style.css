@@ -313,8 +313,52 @@ td{
     font-size:15px;
 }
 
-.entries-card > button{
+.download-actions{
+    display:flex;
+    gap:10px;
     margin-top:12px;
+}
+
+.download-actions button{
+    flex:1;
+    margin-top:0;
+}
+
+.btn-pdf{
+    background:#28a745;
+}
+
+.btn-pdf:hover{
+    background:#218838;
+}
+
+.pdf-report{
+    position:fixed;
+    left:-10000px;
+    top:0;
+    width:360px;
+    background:#f4f6f9;
+    padding:15px;
+    pointer-events:none;
+}
+
+.pdf-report-title{
+    font-size:18px;
+    text-align:center;
+    margin-bottom:6px;
+}
+
+.pdf-report-meta{
+    text-align:center;
+    font-size:13px;
+    color:#6c757d;
+    margin-bottom:14px;
+}
+
+.pdf-report .entry-card,
+.pdf-report .summary-card{
+    break-inside:avoid;
+    page-break-inside:avoid;
 }
 
 /* Phones */

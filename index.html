@@ -107,12 +107,18 @@
 </table>
 </div>
 
-<button onclick="exportCSV()">Download report</button>
+<div class="download-actions">
+<button type="button" class="btn-pdf" onclick="exportPDF()">Download PDF</button>
+<button type="button" class="btn-csv" onclick="exportCSV()">Download Excel</button>
+</div>
+
+<div id="pdfReport" class="pdf-report" aria-hidden="true"></div>
 
 </div>
 
 </div>
 
+<script src="libs/html2pdf.bundle.min.js"></script>
 <script src="app.js"></script>
 
 <script>

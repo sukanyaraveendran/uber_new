@@ -1,11 +1,12 @@
-const CACHE_NAME = "uber-tracker-v3";
+const CACHE_NAME = "uber-tracker-v4";
 
 const urlsToCache = [
   "/",
   "/index.html",
   "/style.css",
   "/app.js",
-  "/manifest.json"
+  "/manifest.json",
+  "/libs/html2pdf.bundle.min.js"
 ];
 
 // Install new service worker immediately
