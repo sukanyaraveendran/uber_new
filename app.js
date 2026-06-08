@@ -15,6 +15,7 @@ function normalizeEntry(entry) {
  let otherExpense = entry.otherExpense ?? 0;
  let otherEarnings = entry.otherEarnings ?? 0;
  let earnings = entry.earnings ?? 0;
+ let narration = (entry.narration ?? "").trim();
 
  if (entry.fuel === undefined && entry.dailyExpense === undefined &&
      entry.otherExpense === undefined && entry.expenses != null) {
@@ -35,6 +36,7 @@ function normalizeEntry(entry) {
   toll,
   dailyExpense,
   otherExpense,
+  narration,
   expenses,
   profit
  };
@@ -62,7 +64,8 @@ function readFormValues() {
   foodTeaWater: Number(document.getElementById("foodTeaWater").value) || 0,
   toll: Number(document.getElementById("toll").value) || 0,
   dailyExpense: Number(document.getElementById("dailyExpense").value) || 0,
-  otherExpense: Number(document.getElementById("otherExpense").value) || 0
+  otherExpense: Number(document.getElementById("otherExpense").value) || 0,
+  narration: document.getElementById("narration").value.trim()
  };
 }
 
@@ -82,6 +85,7 @@ function buildEntry(values) {
   toll: values.toll,
   dailyExpense: values.dailyExpense,
   otherExpense: values.otherExpense,
+  narration: values.narration,
   expenses,
   profit: totalEarnings - expenses
  };
@@ -96,6 +100,7 @@ function clearForm() {
  document.getElementById("toll").value = "";
  document.getElementById("dailyExpense").value = "";
  document.getElementById("otherExpense").value = "";
+ document.getElementById("narration").value = "";
 }
 
 function setEditMode(index) {
@@ -111,6 +116,7 @@ function setEditMode(index) {
  document.getElementById("toll").value = entry.toll || "";
  document.getElementById("dailyExpense").value = entry.dailyExpense || "";
  document.getElementById("otherExpense").value = entry.otherExpense || "";
+ document.getElementById("narration").value = entry.narration || "";
 
  document.getElementById("saveBtn").innerText = "Update";
  document.getElementById("cancelEditBtn").classList.remove("hidden");
@@ -147,6 +153,20 @@ function profitClass(value) {
 
 function formatMoney(value) {
  return "₹" + value;
+}
+
+function escapeHtml(text) {
+ return String(text)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+}
+
+function csvEscape(value) {
+ let text = String(value ?? "");
+ if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+ return text;
 }
 
 function getDailyTotals() {
@@ -262,6 +282,12 @@ function entryCardHtml({ entry, index }, lastByDate, dailyTotals, includeActions
  let actionsBlock = includeActions
   ? `<div class="entry-card-actions">${actionButtonsHtml(index)}</div>`
   : "";
+ let narrationBlock = entry.narration
+  ? `<div class="entry-card-narration">
+     <strong>Narration</strong>
+     ${escapeHtml(entry.narration)}
+    </div>`
+  : "";
 
  return `
  <article class="entry-card">
@@ -282,6 +308,7 @@ function entryCardHtml({ entry, index }, lastByDate, dailyTotals, includeActions
    ${metricRow("Service", entry.otherExpense, false)}
    ${metricRow("Total", entry.expenses, true)}
   </section>
+  ${narrationBlock}
   ${profitBlock}
   ${actionsBlock}
  </article>
@@ -355,6 +382,7 @@ function renderDesktopTable(sorted, lastByDate, dailyTotals) {
  <td>${formatMoney(entry.otherExpense)}</td>
  <td class="amount-total">${formatMoney(entry.expenses)}</td>
  ${profitCell}
+ <td class="narration-cell">${entry.narration ? escapeHtml(entry.narration) : ""}</td>
  <td class="actions-cell">${actionButtonsHtml(index)}</td>
  </tr>
  `;
@@ -580,7 +608,7 @@ async function exportPDF() {
 
 function exportCSV() {
  let csv =
-  "Date,Uber Earnings,Other Earnings,Total Earnings,Fuel,Rent/EMI,Food Tea Water,Toll,Other Expenses,Service Expense,Total Expenses,Profit\n";
+  "Date,Uber Earnings,Other Earnings,Total Earnings,Fuel,Rent/EMI,Food Tea Water,Toll,Other Expenses,Service Expense,Total Expenses,Profit,Narration\n";
 
  let lastByDate = getLastEntryIndexByDate();
  let dailyTotals = getDailyTotals();
@@ -592,12 +620,12 @@ function exportCSV() {
    profitCol = dailyTotals[entry.date]?.profit ?? 0;
   }
   csv +=
-   `${entry.date},${entry.earnings},${entry.otherEarnings},${total},${entry.fuel},${entry.rentEmi},${entry.foodTeaWater},${entry.toll},${entry.dailyExpense},${entry.otherExpense},${entry.expenses},${profitCol}\n`;
+   `${entry.date},${entry.earnings},${entry.otherEarnings},${total},${entry.fuel},${entry.rentEmi},${entry.foodTeaWater},${entry.toll},${entry.dailyExpense},${entry.otherExpense},${entry.expenses},${profitCol},${csvEscape(entry.narration)}\n`;
  });
 
  let totals = getTableTotals();
  csv +=
-  `Total,${totals.uber},${totals.otherEarnings},${totals.earnings},${totals.fuel},${totals.rentEmi},${totals.foodTeaWater},${totals.toll},${totals.daily},${totals.otherExpense},${totals.expenses},${totals.profit}\n`;
+  `Total,${totals.uber},${totals.otherEarnings},${totals.earnings},${totals.fuel},${totals.rentEmi},${totals.foodTeaWater},${totals.toll},${totals.daily},${totals.otherExpense},${totals.expenses},${totals.profit},\n`;
 
  let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
  let link = document.createElement("a");

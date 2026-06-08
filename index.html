@@ -43,6 +43,8 @@
 
 <input type="number" id="otherExpense" placeholder="Service / Maintenance / Insurance ₹">
 
+<textarea id="narration" rows="2" placeholder="Narration — note anything important for this day"></textarea>
+
 <button id="saveBtn" onclick="addEntry()">Save</button>
 <button id="cancelEditBtn" type="button" class="cancel-edit hidden" onclick="cancelEdit()">Cancel edit</button>
 
@@ -80,6 +82,7 @@
 <th colspan="3" class="earnings-group">Earnings</th>
 <th colspan="7" class="expenses-group">Expenses</th>
 <th rowspan="2">Profit</th>
+<th rowspan="2">Narration</th>
 <th rowspan="2">Actions</th>
 </tr>
 <tr>
@@ -112,6 +115,7 @@
 <td id="totalOtherExpense">₹0</td>
 <td id="totalExpenses">₹0</td>
 <td id="totalProfit" class="profit-positive">₹0</td>
+<td></td>
 <td></td>
 </tr>
 </tfoot>
