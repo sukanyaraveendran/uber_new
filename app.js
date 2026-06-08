@@ -8,6 +8,9 @@ new Date().toISOString().split("T")[0];
 
 function normalizeEntry(entry) {
  let fuel = entry.fuel ?? 0;
+ let rentEmi = entry.rentEmi ?? 0;
+ let foodTeaWater = entry.foodTeaWater ?? 0;
+ let toll = entry.toll ?? 0;
  let dailyExpense = entry.dailyExpense ?? 0;
  let otherExpense = entry.otherExpense ?? 0;
  let otherEarnings = entry.otherEarnings ?? 0;
@@ -18,7 +21,7 @@ function normalizeEntry(entry) {
   dailyExpense = entry.expenses;
  }
 
- let expenses = fuel + dailyExpense + otherExpense;
+ let expenses = fuel + rentEmi + foodTeaWater + toll + dailyExpense + otherExpense;
  let totalEarnings = earnings + otherEarnings;
  let profit = entry.profit ?? (totalEarnings - expenses);
 
@@ -27,6 +30,9 @@ function normalizeEntry(entry) {
   earnings,
   otherEarnings,
   fuel,
+  rentEmi,
+  foodTeaWater,
+  toll,
   dailyExpense,
   otherExpense,
   expenses,
@@ -52,6 +58,9 @@ function readFormValues() {
   earnings: Number(document.getElementById("earnings").value) || 0,
   otherEarnings: Number(document.getElementById("otherEarnings").value) || 0,
   fuel: Number(document.getElementById("fuel").value) || 0,
+  rentEmi: Number(document.getElementById("rentEmi").value) || 0,
+  foodTeaWater: Number(document.getElementById("foodTeaWater").value) || 0,
+  toll: Number(document.getElementById("toll").value) || 0,
   dailyExpense: Number(document.getElementById("dailyExpense").value) || 0,
   otherExpense: Number(document.getElementById("otherExpense").value) || 0
  };
@@ -59,7 +68,8 @@ function readFormValues() {
 
 function buildEntry(values) {
  let expenses =
- values.fuel + values.dailyExpense + values.otherExpense;
+  values.fuel + values.rentEmi + values.foodTeaWater + values.toll +
+  values.dailyExpense + values.otherExpense;
  let totalEarnings = values.earnings + values.otherEarnings;
 
  return {
@@ -67,6 +77,9 @@ function buildEntry(values) {
   earnings: values.earnings,
   otherEarnings: values.otherEarnings,
   fuel: values.fuel,
+  rentEmi: values.rentEmi,
+  foodTeaWater: values.foodTeaWater,
+  toll: values.toll,
   dailyExpense: values.dailyExpense,
   otherExpense: values.otherExpense,
   expenses,
@@ -78,6 +91,9 @@ function clearForm() {
  document.getElementById("earnings").value = "";
  document.getElementById("otherEarnings").value = "";
  document.getElementById("fuel").value = "";
+ document.getElementById("rentEmi").value = "";
+ document.getElementById("foodTeaWater").value = "";
+ document.getElementById("toll").value = "";
  document.getElementById("dailyExpense").value = "";
  document.getElementById("otherExpense").value = "";
 }
@@ -90,6 +106,9 @@ function setEditMode(index) {
  document.getElementById("earnings").value = entry.earnings || "";
  document.getElementById("otherEarnings").value = entry.otherEarnings || "";
  document.getElementById("fuel").value = entry.fuel || "";
+ document.getElementById("rentEmi").value = entry.rentEmi || "";
+ document.getElementById("foodTeaWater").value = entry.foodTeaWater || "";
+ document.getElementById("toll").value = entry.toll || "";
  document.getElementById("dailyExpense").value = entry.dailyExpense || "";
  document.getElementById("otherExpense").value = entry.otherExpense || "";
 
@@ -177,6 +196,9 @@ function getTableTotals() {
   otherEarnings: 0,
   earnings: 0,
   fuel: 0,
+  rentEmi: 0,
+  foodTeaWater: 0,
+  toll: 0,
   daily: 0,
   otherExpense: 0,
   expenses: 0,
@@ -188,6 +210,9 @@ function getTableTotals() {
   totals.otherEarnings += entry.otherEarnings;
   totals.earnings += entry.earnings + entry.otherEarnings;
   totals.fuel += entry.fuel;
+  totals.rentEmi += entry.rentEmi;
+  totals.foodTeaWater += entry.foodTeaWater;
+  totals.toll += entry.toll;
   totals.daily += entry.dailyExpense;
   totals.otherExpense += entry.otherExpense;
   totals.expenses += entry.expenses;
@@ -250,8 +275,11 @@ function entryCardHtml({ entry, index }, lastByDate, dailyTotals, includeActions
   <section class="entry-card-section expenses-section">
    <h4>Expenses</h4>
    ${metricRow("Fuel", entry.fuel, false)}
-   ${metricRow("Daily", entry.dailyExpense, false)}
-   ${metricRow("Other", entry.otherExpense, false)}
+   ${metricRow("Rent/EMI", entry.rentEmi, false)}
+   ${metricRow("Food, Tea, Water", entry.foodTeaWater, false)}
+   ${metricRow("Toll", entry.toll, false)}
+   ${metricRow("Other Expenses", entry.dailyExpense, false)}
+   ${metricRow("Service", entry.otherExpense, false)}
    ${metricRow("Total", entry.expenses, true)}
   </section>
   ${profitBlock}
@@ -273,8 +301,11 @@ function summaryCardHtml(totals) {
   <section class="entry-card-section expenses-section">
    <h4>Expenses</h4>
    ${metricRow("Fuel", totals.fuel, false)}
-   ${metricRow("Daily", totals.daily, false)}
-   ${metricRow("Other", totals.otherExpense, false)}
+   ${metricRow("Rent/EMI", totals.rentEmi, false)}
+   ${metricRow("Food, Tea, Water", totals.foodTeaWater, false)}
+   ${metricRow("Toll", totals.toll, false)}
+   ${metricRow("Other Expenses", totals.daily, false)}
+   ${metricRow("Service", totals.otherExpense, false)}
    ${metricRow("Total", totals.expenses, true)}
   </section>
   <div class="entry-card-profit summary-total-profit ${profitClass(totals.profit)}">
@@ -317,6 +348,9 @@ function renderDesktopTable(sorted, lastByDate, dailyTotals) {
  <td>${formatMoney(entry.otherEarnings)}</td>
  <td class="amount-total">${formatMoney(rowEarnings)}</td>
  <td>${formatMoney(entry.fuel)}</td>
+ <td>${formatMoney(entry.rentEmi)}</td>
+ <td>${formatMoney(entry.foodTeaWater)}</td>
+ <td>${formatMoney(entry.toll)}</td>
  <td>${formatMoney(entry.dailyExpense)}</td>
  <td>${formatMoney(entry.otherExpense)}</td>
  <td class="amount-total">${formatMoney(entry.expenses)}</td>
@@ -352,6 +386,10 @@ function updateDesktopTotals(totals) {
  document.getElementById("totalEarnings").innerText =
   formatMoney(totals.earnings);
  document.getElementById("totalFuel").innerText = formatMoney(totals.fuel);
+ document.getElementById("totalRentEmi").innerText = formatMoney(totals.rentEmi);
+ document.getElementById("totalFoodTeaWater").innerText =
+  formatMoney(totals.foodTeaWater);
+ document.getElementById("totalToll").innerText = formatMoney(totals.toll);
  document.getElementById("totalDaily").innerText = formatMoney(totals.daily);
  document.getElementById("totalOtherExpense").innerText =
   formatMoney(totals.otherExpense);
@@ -374,33 +412,49 @@ function renderTable() {
  updateDesktopTotals(totals);
 }
 
+function localDateStr(date = new Date()) {
+ let y = date.getFullYear();
+ let m = String(date.getMonth() + 1).padStart(2, "0");
+ let d = String(date.getDate()).padStart(2, "0");
+ return `${y}-${m}-${d}`;
+}
+
+function getMonthRange(date = new Date()) {
+ let year = date.getFullYear();
+ let month = date.getMonth() + 1;
+ let lastDay = new Date(year, date.getMonth() + 1, 0).getDate();
+ let monthStr = String(month).padStart(2, "0");
+ return {
+  start: `${year}-${monthStr}-01`,
+  end: `${year}-${monthStr}-${String(lastDay).padStart(2, "0")}`
+ };
+}
+
 function updateSummary() {
  let today = new Date();
- let todayStr = today.toISOString().split("T")[0];
- let weekProfit = 0;
- let monthProfit = 0;
+ let todayStr = localDateStr(today);
+ let monthRange = getMonthRange(today);
+ let totalProfit = 0;
  let todayProfit = 0;
+ let monthProfit = 0;
  let dailyTotals = getDailyTotals();
 
  Object.entries(dailyTotals).forEach(([dateStr, day]) => {
-  let d = new Date(dateStr);
-
   if (dateStr === todayStr) todayProfit = day.profit;
+  else totalProfit += day.profit;
 
-  let diff = (today - d) / (1000 * 60 * 60 * 24);
-
-  if (diff >= 0 && diff <= 7) weekProfit += day.profit;
-
-  if (
-   d.getMonth() === today.getMonth() &&
-   d.getFullYear() === today.getFullYear()
-  ) {
+  if (dateStr >= monthRange.start && dateStr <= monthRange.end) {
    monthProfit += day.profit;
   }
  });
 
- ["todayProfit", "weeklyProfit", "monthlyProfit"].forEach((id, i) => {
-  let value = [todayProfit, weekProfit, monthProfit][i];
+ let totalBalance = totalProfit + todayProfit;
+
+ [
+  ["totalBalance", totalBalance],
+  ["todayProfit", todayProfit],
+  ["monthlyProfit", monthProfit]
+ ].forEach(([id, value]) => {
   let el = document.getElementById(id);
   el.innerText = "₹" + value;
   el.className = profitClass(value);
@@ -526,7 +580,7 @@ async function exportPDF() {
 
 function exportCSV() {
  let csv =
-  "Date,Uber Earnings,Other Earnings,Total Earnings,Fuel,Daily Expense,Other Expense,Total Expenses,Profit\n";
+  "Date,Uber Earnings,Other Earnings,Total Earnings,Fuel,Rent/EMI,Food Tea Water,Toll,Other Expenses,Service Expense,Total Expenses,Profit\n";
 
  let lastByDate = getLastEntryIndexByDate();
  let dailyTotals = getDailyTotals();
@@ -538,12 +592,12 @@ function exportCSV() {
    profitCol = dailyTotals[entry.date]?.profit ?? 0;
   }
   csv +=
-   `${entry.date},${entry.earnings},${entry.otherEarnings},${total},${entry.fuel},${entry.dailyExpense},${entry.otherExpense},${entry.expenses},${profitCol}\n`;
+   `${entry.date},${entry.earnings},${entry.otherEarnings},${total},${entry.fuel},${entry.rentEmi},${entry.foodTeaWater},${entry.toll},${entry.dailyExpense},${entry.otherExpense},${entry.expenses},${profitCol}\n`;
  });
 
  let totals = getTableTotals();
  csv +=
-  `Total,${totals.uber},${totals.otherEarnings},${totals.earnings},${totals.fuel},${totals.daily},${totals.otherExpense},${totals.expenses},${totals.profit}\n`;
+  `Total,${totals.uber},${totals.otherEarnings},${totals.earnings},${totals.fuel},${totals.rentEmi},${totals.foodTeaWater},${totals.toll},${totals.daily},${totals.otherExpense},${totals.expenses},${totals.profit}\n`;
 
  let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
  let link = document.createElement("a");
